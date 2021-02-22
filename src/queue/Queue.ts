@@ -1,5 +1,6 @@
 import { EventEmitter } from "events";
-import { Job, JobStatus, IJob } from './Job';
+import { delay } from "../utils/timings";
+import { Job, JobStatus, IJob, Work } from './Job';
 import { Ticker } from "./Ticker";
 
 type QueueState = 'new' | 'running' | 'stopped' | 'ended';
@@ -10,7 +11,11 @@ type QueueConfig = {
   },
   repeat?: {
     attemptsLimit?: number;
-  }
+  };
+  delay?: {
+    initialInterval: number;
+    intervalGrowthFactor: (interval: number, attemptsMade: number) => number;
+  };
 }
 
 export declare interface Queue {
@@ -45,7 +50,7 @@ export class Queue extends EventEmitter {
     this.type = this.options.concurrency ? 'concurrent' : 'single';
   }
 
-  add(todo: Function) {
+  add(todo: Work) {
     this.jobCounter++;
     const job = new Job(this.jobCounter, todo);
     this.activeJobs.push(job);
@@ -61,6 +66,8 @@ export class Queue extends EventEmitter {
   }
 
   start() {
+    this.on('error', () => {});
+
     if (this.state === 'new') {
       this.emit('start', this.jobsLog);
       this.state = 'running';
@@ -71,7 +78,11 @@ export class Queue extends EventEmitter {
       if (!job) {
         return;
       }
+      if (job.isPending) {
+        return;
+      }
       await this.runJob(job);
+
       // if (this.type === 'concurrent' && this.options.concurrency) {
       //   const jobConcurrency = this.options.concurrency.concurrentJobAmount;
 
@@ -86,19 +97,31 @@ export class Queue extends EventEmitter {
     });
   }
 
-  public get size() {
+  get size() {
     return this.activeJobs.length;
   }
 
   protected async runJob(job: Job) {
+    job.setInProgess();
+    if (this.options.delay && job.runAttempts) {
+      const interval = this.options.delay.intervalGrowthFactor(
+        this.options.delay.initialInterval,
+        job.runAttempts
+      );
+      await delay(interval);
+    }
     await job.run();
     this.emit(job.status, job);
+
     this.jobsLog.set(job.id, job);
 
     if (!this.options.repeat) {
+      if (!job.isSuccess) {
+        job.setAsFailed();
+        this.emit(job.status, job);
+      }
       return;
-    }
-    if (!job.isSuccess && job.result instanceof Error) {
+    } else if (!job.isSuccess && job.result instanceof Error) {
       if (job.runAttempts !== this.options.repeat.attemptsLimit) {
         this.activeJobs.unshift(job);
       } else {

@@ -27,8 +27,7 @@ async function main() {
     console.log('Reached queue end', log.size);
   });
 
-  await q.start();
-
+  q.start();
 }
 
 main();

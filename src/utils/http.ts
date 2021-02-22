@@ -3,7 +3,7 @@ import { Agent, request, RequestOptions } from 'https';
 
 type Headers = { [key: string]: string; };
 
-type ReqeustParams = {
+type RequestParams = {
   headers?: Headers;
   agent?: Agent;
   body?: object;
@@ -26,7 +26,7 @@ function createResponse(url: string, res: IncomingMessage, data: any): HttpRespo
   }
 }
 
-async function makeRequest(url: string, method: 'GET' | 'POST', rq: ReqeustParams): Promise<HttpResponse> {
+async function makeRequest(url: string, method: 'GET' | 'POST', rq: RequestParams): Promise<HttpResponse> {
   const parsedUrl = new URL(url);
   const sendData = rq.body ? JSON.stringify(rq.body) : undefined;
 
@@ -74,10 +74,10 @@ async function makeRequest(url: string, method: 'GET' | 'POST', rq: ReqeustParam
   });
 }
 
-export function makeGetRequest(url: string, params?: { headers?: Headers; agent?: Agent }): Promise<HttpResponse> {
+export function makeGetRequest(url: string, params?: RequestParams): Promise<HttpResponse> {
   return makeRequest(url, 'GET', params || {});
 }
 
-export function makePostRequest(url: string, body?: object, params?: { headers?: Headers; agent?: Agent }): Promise<HttpResponse> {
+export function makePostRequest(url: string, body?: object, params?: RequestParams): Promise<HttpResponse> {
   return makeRequest(url, 'POST', Object.assign(params || {}, { body: body }));
 }

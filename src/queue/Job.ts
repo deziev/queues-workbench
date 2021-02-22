@@ -1,4 +1,5 @@
 export type JobStatus = 'new' | 'success' | 'error' | 'pending' | 'failed';
+export type Work = (job: Job) => Promise<any>;
 
 export interface IJob<T> {
   id: string;
@@ -16,10 +17,10 @@ export class Job {
   public status: JobStatus;
   public updatedAt: number;
 
-  protected work: Function;
+  protected work: Work;
   public result?: any | Error;
 
-  constructor(id: number, work: Function) {
+  constructor(id: number, work: Work) {
     this.id = id;
     this.work = work;
     this.status = 'new';
@@ -28,10 +29,10 @@ export class Job {
     this.updatedAt = Date.now();
   }
 
-  public async run() {
+  async run() {
     this.status = 'pending';
     try {
-      const result = await this.work();
+      const result = await this.work(this);
       this.result = result;
       this.status = 'success';
     } catch (error) {
@@ -42,11 +43,19 @@ export class Job {
     this.runAttempts++;
   }
 
-  public get isSuccess() {
+  get isPending() {
+    return this.status === 'pending';
+  }
+
+  get isSuccess() {
     return this.status === 'success';
   }
 
-  public setAsFailed() {
+  setAsFailed() {
     this.status = 'failed';
+  }
+
+  setInProgess() {
+    this.status = 'pending';
   }
 }
