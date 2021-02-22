@@ -1,0 +1,24 @@
+{
+  "name": "queues-workbench",
+  "version": "1.0.0",
+  "description": "Playing around with queues",
+  "main": "dist/app.js",
+  "scripts": {
+    "clean": "rm -rf ./dist",
+    "compile": "npm run clean && ./node_modules/.bin/tsc",
+    "compile-dev": "npm run clean && ./node_modules/.bin/tsc --watch",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "queue",
+    "concurrency",
+    "jobs",
+    "tasks"
+  ],
+  "author": "deziev",
+  "license": "ISC",
+  "dependencies": {
+    "@types/node": "^14.14.28",
+    "typescript": "^4.1.5"
+  }
+}
