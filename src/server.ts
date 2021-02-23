@@ -1,12 +1,12 @@
-import * as http from 'http';
-import { delay } from './utils/timings';
-import { PingData } from './model/PingData';
+import * as http from "http";
+import { delay } from "./utils/timings";
+import { PingData } from "./model/PingData";
 
-const host = 'localhost';
+const host = "localhost";
 const port = 8080;
 
 function getRandom(min: number, max: number) {
-  return Math.random() * (max - min) + min;;
+  return Math.random() * (max - min) + min;
 }
 
 async function handleData(data: PingData) {
@@ -20,7 +20,7 @@ async function handleData(data: PingData) {
     throw new Error();
   }
   if (rnd > 80 && rnd <= 100) {
-    while(true) {
+    while (true) {
       await delay(1);
     }
   }
@@ -37,25 +37,33 @@ function handleResponse(
   res.end(dataToSend);
 }
 
-async function requestListener(request: http.IncomingMessage, response: http.ServerResponse) {
+async function requestListener(
+  request: http.IncomingMessage,
+  response: http.ServerResponse
+) {
   try {
-    if (request.method === 'POST' && request.url === '/data') {
+    if (request.method === "POST" && request.url === "/data") {
       let body: any[] = [];
-      request.on('data', (chunk) => {
+      request.on("data", (chunk) => {
         body.push(chunk);
       });
-      request.on('end', async() => {
+      request.on("end", async () => {
         try {
           const data = JSON.parse(Buffer.concat(body).toString());
           await handleData(data);
-          handleResponse(request, response, 200, 'OK');
+          handleResponse(request, response, 200, "OK");
         } catch (error) {
           // console.log(error);
           handleResponse(request, response, 500);
         }
       });
     } else {
-      handleResponse(request, response, 404, `Cannot ${request.method} ${request.url}`);
+      handleResponse(
+        request,
+        response,
+        404,
+        `Cannot ${request.method} ${request.url}`
+      );
     }
   } catch (error) {
     // console.log(error);

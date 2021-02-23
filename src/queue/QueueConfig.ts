@@ -16,4 +16,4 @@ export type QueueConfig = {
   concurrency?: ConcurrencyOptions;
   repeat?: RepeatOptions;
   delay?: DelayIntervalOptions;
-}
+};

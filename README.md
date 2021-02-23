@@ -1,27 +1,34 @@
 # TS job scheduler
 
 ## Prerequisites
-* NodeJS 10|12
+
+- NodeJS 10|12
 
 ## Installation
+
 Install dependencies and compile typescript:
+
 ```
 npm install
 npm run compile
 ```
 
 ## Usage
+
 To run server:
+
 ```
 npm run server
 ```
 
 To run queues in client:
+
 ```
 npm run client
 ```
 
 Client script run example:
+
 ```js
 [STORE] error: ID: 1 | 1 | Error: connect ECONNREFUSED 127.0.0.1:8080
 [STORE] error: ID: 1 | 2 | Error: connect ECONNREFUSED 127.0.0.1:8080

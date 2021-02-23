@@ -3,14 +3,18 @@ import { delay } from "../utils/timings";
 import { uid } from "../utils/uid";
 
 import { Ticker } from "./Ticker";
-import { Job, JobStatus, IJob, Work } from './Job';
-import { QueueConfig, RepeatOptions, DelayIntervalOptions } from './QueueConfig';
+import { Job, JobStatus, IJob, Work } from "./Job";
+import {
+  QueueConfig,
+  RepeatOptions,
+  DelayIntervalOptions,
+} from "./QueueConfig";
 
-type QueueState = 'new' | 'running' | 'stopped' | 'ended';
-type QueueType = 'single' | 'concurrent';
+type QueueState = "new" | "running" | "stopped" | "ended";
+type QueueType = "single" | "concurrent";
 
-type QueueStateEvents = 'start' | 'stopped' | 'ended';
-type QueueJobEvents = JobStatus | 'job-status-change';
+type QueueStateEvents = "start" | "stopped" | "ended";
+type QueueJobEvents = JobStatus | "job-status-change";
 
 export declare interface Queue {
   /**
@@ -24,7 +28,10 @@ export declare interface Queue {
    * @param event
    * @param listener
    */
-  on(event: QueueStateEvents, listener: (jobsLog: Map<number, IJob<any>>) => void): this;
+  on(
+    event: QueueStateEvents,
+    listener: (jobsLog: Map<number, IJob<any>>) => void
+  ): this;
 
   emit(event: QueueJobEvents, job: Job): boolean;
   emit(event: QueueStateEvents, jobsLog: Map<number, IJob<any>>): boolean;
@@ -38,17 +45,17 @@ export class Queue extends EventEmitter {
   protected state: QueueState;
   protected activeJobs: Job[];
   protected jobsLog: Map<number, Job>;
-  protected internalLoop?: Ticker<'tick'>;
+  protected internalLoop?: Ticker<"tick">;
 
   constructor(options?: QueueConfig) {
     super();
-    this.name = (options && options.name) ? options.name : `queue:${uid()}`;
+    this.name = options && options.name ? options.name : `queue:${uid()}`;
     this.jobCounter = 0;
     this.activeJobs = [];
     this.jobsLog = new Map();
-    this.state = 'new';
+    this.state = "new";
     this.options = options || {};
-    this.type = this.options.concurrency ? 'concurrent' : 'single';
+    this.type = this.options.concurrency ? "concurrent" : "single";
   }
 
   add(todo: Work) {
@@ -59,39 +66,36 @@ export class Queue extends EventEmitter {
   }
 
   stop() {
-    this.state = 'stopped';
+    this.state = "stopped";
     if (this.internalLoop !== undefined) {
       this.internalLoop.unsubscribe();
     }
-    this.emit('stopped', this.jobsLog);
+    this.emit("stopped", this.jobsLog);
   }
 
   start() {
-    this.on('error', () => {});
+    this.on("error", () => {});
 
-    if (this.state === 'new') {
-      this.state = 'running';
-      this.emit('start', this.jobsLog);
+    if (this.state === "new") {
+      this.state = "running";
+      this.emit("start", this.jobsLog);
     }
-    this.internalLoop = new Ticker('tick', 1);
-    this.internalLoop.on('tick', async() => {
-      if (this.type === 'concurrent' && this.options.concurrency) {
+    this.internalLoop = new Ticker("tick", 1);
+    this.internalLoop.on("tick", async () => {
+      if (this.type === "concurrent" && this.options.concurrency) {
         const jobConcurrency = this.options.concurrency.concurrentJobAmount;
         const concurrentJobsList = this.activeJobs
-          .filter(job => !job.isPending)
+          .filter((job) => !job.isPending)
           .slice(0, jobConcurrency);
 
         if (!concurrentJobsList.length) {
           return;
         }
 
-        await Promise.all(concurrentJobsList
-          .map(job => this.runJob(job))
-        );
+        await Promise.all(concurrentJobsList.map((job) => this.runJob(job)));
 
-        this.activeJobs = this.activeJobs.filter(job => !job.isDone);
-
-      } else if (this.type === 'single') {
+        this.activeJobs = this.activeJobs.filter((job) => !job.isDone);
+      } else if (this.type === "single") {
         const job = this.activeJobs.shift();
         if (!job) {
           return;
@@ -109,12 +113,15 @@ export class Queue extends EventEmitter {
   }
 
   get activeJobsIdList() {
-    return this.activeJobs.map(job => job.id);
+    return this.activeJobs.map((job) => job.id);
   }
 
   protected async runJob(job: Job): Promise<Job> {
     job.setInProgess();
-    if (this.options.delay && (job.runAttempts || this.options.delay.beforeEach)) {
+    if (
+      this.options.delay &&
+      (job.runAttempts || this.options.delay.beforeEach)
+    ) {
       await this.delayJob(job, this.options.delay);
     }
     await job.run();
@@ -155,7 +162,7 @@ export class Queue extends EventEmitter {
   }
 
   protected addToRerun(job: Job) {
-    if (!this.activeJobs.find(activeJob => activeJob.id === job.id)) {
+    if (!this.activeJobs.find((activeJob) => activeJob.id === job.id)) {
       this.activeJobs.unshift(job);
     }
   }
@@ -167,7 +174,7 @@ export class Queue extends EventEmitter {
 
   protected emitJobStatusChange(job: Job) {
     this.emit(job.status, job);
-    this.emit('job-status-change', job);
+    this.emit("job-status-change", job);
   }
 
   protected get errorJobs() {

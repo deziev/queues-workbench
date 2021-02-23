@@ -1,7 +1,7 @@
-export const delay = async(ms: number): Promise<{}> => {
+export const delay = async (ms: number): Promise<{}> => {
   return new Promise((resolve) => {
-      setTimeout((e) => {
-          resolve(e);
-      }, ms);
+    setTimeout((e) => {
+      resolve(e);
+    }, ms);
   });
 };
