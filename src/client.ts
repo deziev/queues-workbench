@@ -1,10 +1,17 @@
 import { makeGetRequest, HttpResponse, makePostRequest } from './utils/http';
-import { Job, Queue, Ticker } from './queue';
+import { Job, Queue } from './queue';
 import { PingData } from './model/PingData';
 
 async function main() {
-  const ticker = new Ticker('ping', 1000);
-  const pingQueue = new Queue();
+  const pingQueue = new Queue({
+    repeat: { repeatEach: true },
+    delay: {
+      beforeEach: true,
+      initialInterval: 1000,
+      intervalGrowthFactor: (interval) => interval
+    }
+  });
+
   const collectorQueue = new Queue({
     concurrency: { concurrentJobAmount: 5 },
     repeat: { attemptsLimit: 15 },
@@ -16,16 +23,14 @@ async function main() {
     }
   });
 
-  ticker.on('ping', () => {
-    pingQueue.add(async() => {
-      const start = Date.now();
-      const response = await makeGetRequest('https://fundraiseup.com/');
-      const responseTime = Date.now() - start;
-      return {
-        responseTime,
-        response
-      };
-    });
+  pingQueue.add(async() => {
+    const start = Date.now();
+    const response = await makeGetRequest('https://fundraiseup.com/');
+    const responseTime = Date.now() - start;
+    return {
+      responseTime,
+      response
+    };
   });
 
   pingQueue.on<{ responseTime: number; response: HttpResponse; }>('success', job => {

@@ -114,7 +114,7 @@ export class Queue extends EventEmitter {
 
   protected async runJob(job: Job): Promise<Job> {
     job.setInProgess();
-    if (this.options.delay && job.runAttempts) {
+    if (this.options.delay && (job.runAttempts || this.options.delay.beforeEach)) {
       await this.delayJob(job, this.options.delay);
     }
     await job.run();
@@ -127,8 +127,13 @@ export class Queue extends EventEmitter {
         this.failJob(job);
       }
       return job;
-    } else if (!job.isSuccess && job.result instanceof Error) {
-      this.rescheduleOrFailJob(job, this.options.repeat);
+    } else {
+      if (job.isSuccess && this.options.repeat.repeatEach) {
+        this.addToRerun(job);
+      }
+      if (!job.isSuccess && job.result instanceof Error) {
+        this.rescheduleOrFailJob(job, this.options.repeat);
+      }
     }
     return job;
   }
@@ -143,11 +148,15 @@ export class Queue extends EventEmitter {
 
   protected rescheduleOrFailJob(job: Job, rescheduleOptions: RepeatOptions) {
     if (job.runAttempts !== rescheduleOptions.attemptsLimit) {
-      if (!this.activeJobs.find(activeJob => activeJob.id === job.id)) {
-        this.activeJobs.unshift(job);
-      }
+      this.addToRerun(job);
     } else {
       this.failJob(job);
+    }
+  }
+
+  protected addToRerun(job: Job) {
+    if (!this.activeJobs.find(activeJob => activeJob.id === job.id)) {
+      this.activeJobs.unshift(job);
     }
   }
 

@@ -1,7 +1,9 @@
 export type RepeatOptions = {
   attemptsLimit?: number;
+  repeatEach?: boolean;
 };
 export type DelayIntervalOptions = {
+  beforeEach?: boolean;
   initialInterval: number;
   intervalGrowthFactor: (interval: number, attemptsMade: number) => number;
 };
