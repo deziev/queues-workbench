@@ -2,7 +2,7 @@ export type JobStatus = 'new' | 'success' | 'error' | 'pending' | 'failed';
 export type Work = (job: Job) => Promise<any>;
 
 export interface IJob<T> {
-  id: string;
+  id: number;
   runAttempts: number;
   status: JobStatus;
   createdAt: number;
@@ -10,7 +10,7 @@ export interface IJob<T> {
   result: T;
 }
 
-export class Job {
+export class Job implements IJob<undefined | any | Error> {
   public readonly id: number;
   public readonly createdAt: number;
   public runAttempts: number;
@@ -18,7 +18,7 @@ export class Job {
   public updatedAt: number;
 
   protected work: Work;
-  public result?: any | Error;
+  public result: undefined | any | Error;
 
   constructor(id: number, work: Work) {
     this.id = id;
@@ -43,12 +43,20 @@ export class Job {
     this.runAttempts++;
   }
 
+  get isDone() {
+    return this.status === 'success' || this.status === 'failed';
+  }
+
   get isPending() {
     return this.status === 'pending';
   }
 
   get isSuccess() {
     return this.status === 'success';
+  }
+
+  get isError() {
+    return this.status === 'error';
   }
 
   setAsFailed() {

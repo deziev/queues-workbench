@@ -1,5 +1,5 @@
-import { IncomingMessage } from 'http';
-import { Agent, request, RequestOptions } from 'https';
+import http, { IncomingMessage } from 'http';
+import https, { Agent, RequestOptions } from 'https';
 
 type Headers = { [key: string]: string; };
 
@@ -29,6 +29,7 @@ function createResponse(url: string, res: IncomingMessage, data: any): HttpRespo
 async function makeRequest(url: string, method: 'GET' | 'POST', rq: RequestParams): Promise<HttpResponse> {
   const parsedUrl = new URL(url);
   const sendData = rq.body ? JSON.stringify(rq.body) : undefined;
+  const request = parsedUrl.protocol === 'https:' ? https.request : http.request;
 
   const options: RequestOptions = {
     method,
@@ -40,21 +41,20 @@ async function makeRequest(url: string, method: 'GET' | 'POST', rq: RequestParam
     timeout: rq.timeout
   };
 
-  if (method === 'POST' && rq.body && typeof rq.body === 'object') {
+  if (method === 'POST' && rq.body && typeof rq.body === 'object' && sendData) {
     options.headers = {
       ...options.headers,
-      'content-length': Buffer.byteLength(JSON.stringify(rq.body))
+      'content-type': 'application/json',
+      'content-length': Buffer.byteLength(sendData)
     }
   }
 
   return new Promise((resolve, reject) => {
     const req = request(options, res => {
       if (!res.statusCode) {
-        return reject(new Error(`HTTP error: ${res.url}`));
+        return reject(new Error(`HTTP: error - ${res.url}`));
       }
-
       const data: any = [];
-
       res.on('data', chunk => {
         data.push(chunk);
       });
@@ -70,7 +70,11 @@ async function makeRequest(url: string, method: 'GET' | 'POST', rq: RequestParam
     }
 
     req.on('error', reject);
+    req.on('timeout', () => {
+      reject(new Error('HTTP: Request timeout'))
+    });
     req.end();
+
   });
 }
 

@@ -1,13 +1,13 @@
 import { makeGetRequest, HttpResponse, makePostRequest } from './utils/http';
-import { Queue } from './queue/Queue';
-import { Ticker } from './queue/Ticker';
-import { Job } from './queue/Job';
+import { Job, Queue, Ticker } from './queue';
+import { PingData } from './model/PingData';
 
 async function main() {
   const ticker = new Ticker('ping', 1000);
   const pingQueue = new Queue();
   const collectorQueue = new Queue({
-    repeat: { attemptsLimit: 5 },
+    concurrency: { concurrentJobAmount: 5 },
+    repeat: { attemptsLimit: 15 },
     delay: {
       initialInterval: 500,
       intervalGrowthFactor: (interval, runAttempts) => {
@@ -34,25 +34,28 @@ async function main() {
       date: job.updatedAt,
       responseTime: job.result.responseTime
     };
-    console.log(`[PING] Done ${JSON.stringify(pingData)} ${job.result.response.statusCode}`);
+    // console.log(`[PING] Done ${JSON.stringify(pingData)} ${job.result.response.statusCode}`);
 
     collectorQueue.add(async(job: Job) => {
-      const storeData = {
+      const storeData: PingData = {
         pingId: pingData.pingId,
         deliveryAttempt: job.runAttempts + 1,
         date: pingData.date,
         responseTime: pingData.responseTime
       };
-      await makePostRequest('http://localhost:8080/data', storeData, { timeout: 10000 });
+      const response = await makePostRequest('http://localhost:8080/data', storeData, { timeout: 10000 });
+      if (response.statusCode != 200) {
+        throw new Error(`Invalid status code: ${response.statusCode}`);
+      }
+      return response.body;
     });
   });
 
-  collectorQueue.on('error', job => {
-    console.log(`[STORE] ${job.status}: ID: ${job.id} | ${job.runAttempts} | ${job.result}`);
-  });
-
-  collectorQueue.on('failed', job => {
-    console.log(`[STORE] ${job.status}: ID: ${job.id} | ${job.runAttempts} | ${job.result}`);
+  collectorQueue.on('job-status-change', job => {
+    if (job.status === 'success' || job.status === 'failed' || job.status === 'error') {
+      console.log(`[STORE] ${job.status}: ID: ${job.id} | ${job.runAttempts} | ${job.result}`);
+      // console.log('active: ', collectorQueue.activeJobsIdList);
+    }
   });
 
   pingQueue.start();

@@ -4,6 +4,8 @@
   "description": "Playing around with queues",
   "main": "dist/app.js",
   "scripts": {
+    "server": "node dist/server.js",
+    "client": "node dist/client.js",
     "clean": "rm -rf ./dist",
     "compile": "npm run clean && ./node_modules/.bin/tsc",
     "compile-dev": "npm run clean && ./node_modules/.bin/tsc --watch",
